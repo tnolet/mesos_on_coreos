@@ -1,0 +1,37 @@
+#cloud-config
+coreos:
+  etcd:
+      #generate a new token for each unique cluster from https://discovery.etcd.io/new
+      discovery: https://discovery.etcd.io/d6beb97d6fb61453f1c6f06caa20c39e
+      addr: $public_ipv4:4001
+      peer-addr: $public_ipv4:7001
+  update:
+    reboot-strategy: etcd-lock
+  units:
+    - name: etcd.service
+      command: start
+    - name: fleet.service
+      command: start
+      runtime: false
+      content: |
+        [Unit]
+        Description=fleet
+        [Service]
+        Environment=FLEET_PUBLIC_IP=$public_ipv4
+        ExecStart=/usr/bin/fleet
+    - name: mesos_bootstrap.service
+      command: start
+      runtime: true
+      content: |
+        [Unit]
+        Description=Mesos Bootstrapper
+        After=docker.service
+        After=etcd.service
+        After=fleet.service
+        [Service]
+        TimeoutStartSec=500
+        EnvironmentFile=/etc/environment
+        ExecStartPre=/bin/sh -c "/usr/bin/docker history tnolet/ubuntu_mesos >/dev/null || /usr/bin/docker pull tnolet/ubuntu_mesos"
+        ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name mesos --net=host -p 5050:5050 -p 8080:8080 -p 5051:5051 -p 2181:2181 -e PUBLIC_IP=$public_ipv4 -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes -v /var/run/docker.sock:/var/run/docker.sock tnolet/ubuntu_mesos:2.0
+        ExecStop=/usr/bin/docker rm -f mesos
+
