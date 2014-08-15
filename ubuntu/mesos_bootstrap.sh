@@ -26,7 +26,7 @@
 ##
 ##  For example, when you want to start a master
 ##
-##  $ ./mesos_bootstrap.sh master
+##  $ ./mesos_bootstrap.sh master`
 ##
 ##  When starting a slave you need to pass in the Master's Zookeeper address
 ##
@@ -34,10 +34,12 @@
 ##
 ##  Starting a Marathon instance is the same as a slave
 ##
-##  $ ./mesos_bootstrap.sh marathon --master=zk://172.17.8.101/mesos
+##  $ ./mesos_bootstrap.sh marathon --master=zk://172.17.8.101/mesos --etcd=false
 ##
 ##  This script is partly based on the great work by deis:
 ##  https://github.com/deis/
+##
+## @todo: replace flags with REAL flags that don't depend on the position in cmd line
 ##
 ########################################################################################################################
 
@@ -78,10 +80,12 @@ MAX_RETRIES_CONNECT=10
 retry=0
 
 # Set locale: this is required by the standard Mesos startup scripts
-locale-gen en_US.UTF-8
+echo -e  "${normal}==> info: Setting locale to en_US.UTF-8..."
+locale-gen en_US.UTF-8 > /dev/null 2>&1
 
 # Start syslog if not started....
-service rsyslog start
+echo -e  "${normal}==> info: Starting syslog..."
+service rsyslog start > /dev/null 2>&1
 
 
 # All functions
@@ -96,6 +100,9 @@ function start_slave {
 
     MASTER=`echo $1 | cut -d '=' -f2`
 
+    # using ETCD or not?
+    USING_ETCD=`echo $2 | cut -d '=' -f2`
+
     # set the slave parameters
     echo ${MASTER} > /etc/mesos/zk
     echo /var/lib/mesos > /etc/mesos-slave/work_dir
@@ -103,70 +110,74 @@ function start_slave {
     echo /usr/local/bin/deimos > /etc/mesos-slave/containerizer_path
     echo ${PUBLIC_IP}  > /etc/mesos-slave/ip
 
-    echo -e  "${bold}==> info: Mesos Bootstrap will try to register this slave with a master at ${MASTER}"
+    echo -e  "${bold}==> info: Mesos slave will try to register with a master at ${MASTER}"
     echo -e  "${normal}==> info: Starting slave..."
 
     /usr/bin/mesos-init-wrapper slave > /dev/null 2>&1 &
+
 	# wait for the slave to start
     sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$SLAVE_PORT\" && \$1 ~ tcp") ]] ; do
 	    echo -e  "${normal}==> info: Waiting for Mesos slave to come online..."
 	    sleep 3;
 	done
+	echo -e  "${normal}==> info: Mesos slave started on port ${SLAVE_PORT}"
 
-
-    # while the Slave runs, keep the Docker container running
-    while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$SLAVE_PORT\" && \$1 ~ tcp") ]] ; do
-	    echo -e  "${normal}==> info: `date` - Mesos slave is running on port ${SLAVE_PORT}"
-		sleep 10
-    done
-
-
-#    /usr/local/sbin/mesos-slave \
-#        --master=zk://$1:2181/mesos \
-#        --work_dir=/var/lib/mesos \
-#        --isolation=external \
-#        --containerizer_path=/usr/local/bin/deimos \
-#        --log_dir=/var/log/mesos \
-#        --ip=${PUBLIC_IP}> /dev/null 2>&1 &
+    # When not using ETCD for Master discovery, this is the end of the script.
+    if [ ${USING_ETCD} = false ]; then
+        # while the Slave runs, keep the Docker container running
+        while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$SLAVE_PORT\" && \$1 ~ tcp") ]] ; do
+            echo -e  "${normal}==> info: `date` - Mesos slave is running on port ${SLAVE_PORT}"
+            sleep 10
+        done
+    fi
 
 }
 
 function start_master {
 
+    # using ETCD or not?
+    USING_ETCD=`echo $1 | cut -d '=' -f2`
+
     echo $PUBLIC_IP > /etc/mesos-master/ip
     echo in_memory > /etc/mesos/registry
     echo "zk://localhost:2181/mesos" > /etc/mesos/zk
 
-    echo -e  "${normal}==> info: Starting Mesos Master..."
+    echo -e  "${normal}==> info: Starting Mesos master..."
 
     /usr/bin/mesos-init-wrapper master > /dev/null 2>&1 &
 
 	# wait for the master to start
     sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$MASTER_PORT\" && \$1 ~ tcp") ]] ; do
-	    echo -e  "${normal}==> info: Waiting for Mesos Master to come online..."
+	    echo -e  "${normal}==> info: Waiting for Mesos master to come online..."
 	    sleep 3;
 	done
-	echo -e  "${normal}==> info: Mesos Master started on port ${MASTER_PORT}"
+	echo -e  "${normal}==> info: Mesos master started on port ${MASTER_PORT}"
 
-	# while the Master runs, keep the Docker container running
-    while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$MASTER_PORT\" && \$1 ~ tcp") ]] ; do
-	    echo -e  "${normal}==> info: `date` - Mesos master is running on port ${MASTER_PORT}"
-		sleep 10
-    done
+    # When not using ETCD for Master discovery, this is the end of the script.
+    if [ ${USING_ETCD} = false ]; then
 
+        # while the Master runs, keep the Docker container running
+        while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$MASTER_PORT\" && \$1 ~ tcp") ]] ; do
+            echo -e  "${normal}==> info: `date` - Mesos master is running on port ${MASTER_PORT}"
+            sleep 10
+        done
+
+    fi
 }
-
 
 function start_marathon {
     MASTER_MARATHON=`echo $1 | cut -d '=' -f2`
+        # using ETCD or not?
+    USING_ETCD=`echo $2 | cut -d '=' -f2`
+
     echo $MASTER_MARATHON > /etc/mesos/master
     echo $MASTER_MARATHON > /etc/mesos/zk
     service marathon start > /dev/null 2>&1 &
 
     # while marathon runs, keep the Docker container running
     while [[ ! -z $(ps -ef | grep marathon | grep -v grep) ]] ; do
-	    echo -e  "${normal}==> info: `date` - Marathon with master ${MASTER_MARATHON} is running"
-		sleep 10
+        echo -e  "${normal}==> info: `date` - Marathon with master ${MASTER_MARATHON} is running"
+        sleep 10
     done
 
 }
@@ -182,7 +193,13 @@ function set_deimos {
 
 function print_usage {
 
-echo "not implemented yet"
+    echo "not implemented yet"
+
+}
+
+function print_auto_mode {
+
+    echo -e  "${normal}==> info: No flags or parameters were given, starting auto discovery..."
 
 }
 
@@ -191,18 +208,20 @@ case "$1" in
     marathon)
         start_marathon $2;;
     master)
-        start_zookeeper && start_master;;
+        start_zookeeper && start_master --etcd=false;;
     slave)
-        start_slave $2;;
+        start_slave $2 --etcd=false;;
+    help)
+        print_usage;;
     *)
-        print_usage
+        print_auto_mode
 esac
 
 #
 # ETCD POLLING
 #
 
-echo -e  "${normal}==> Connecting to ETCD..."
+echo -e  "${normal}==> info: Connecting to ETCD..."
 
 # wait for etcd to be available
 until curl -L http://${ETCD}/v2/keys/ > /dev/null 2>&1; do
@@ -233,7 +252,7 @@ export MASTER_IP=`curl -Ls 10.1.42.1:4001/v2/keys/mesos/master | \
 
 if [[ ! -z ${MASTER_IP} ]]; then
 
-    start_slave --master=zk://${MASTER_IP}:2181/mesos
+    start_slave --master=zk://${MASTER_IP}:2181/mesos --etcd=true
 
 # Create a master and slave and register the master's zookeeper ID in ETCD.
 # Then start a Marathon instance.
@@ -244,13 +263,13 @@ if [[ ! -z ${MASTER_IP} ]]; then
 
     start_zookeeper
 
-    start_master
+    start_master --etcd=true
 
-    start_slave --master=zk://localhost:2181/mesos
+    start_slave --master=zk://localhost:2181/mesos --etcd=true
 
     # start Marathon
     echo -e  "${bold}==> info: Starting Marathon in a separate container..."
-    docker run -d --name marathon tnolet/ubuntu_mesos:2.0 marathon --master=zk://${MASTER_IP}:2181/mesos &
+    docker run --rm --name marathon -p 8080:8080 tnolet/ubuntu_mesos:1.0 marathon --master=zk://${PUBLIC_IP}:2181/mesos &
 
 
     # While the master is running, keep publishing its IP to ETCD

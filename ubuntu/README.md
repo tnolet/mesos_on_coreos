@@ -66,7 +66,7 @@ null
 
 
 
-docker run -i -t --rm --name ubuntu_mesos --net=host -p 5050:5050 -p 8080:8080 -p 5051:5051 -p 2181:2181 -e PUBLIC_IP=172.17.8.101 -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes -v /var/run/docker.sock:/var/run/docker.sock tnolet/ubuntu_mesos:1.0 /bin/bash -l
+docker run -i -t --rm --name mesos --net=host -p 5050:5050 -p 8080:8080 -p 5051:5051 -p 2181:2181 -e PUBLIC_IP=172.17.8.101 -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes -v /var/run/docker.sock:/var/run/docker.sock tnolet/ubuntu_mesos:1.0 /bin/bash -l
 
-docker run -i -t --rm --name ubuntu_marathon -P -e PUBLIC_IP=172.17.8.101 tnolet/ubuntu_mesos:1.0 /bin/bash -l
+docker run -i -t --rm --name marathon -P -e PUBLIC_IP=172.17.8.101 tnolet/ubuntu_mesos:1.0 /bin/bash -l
 
