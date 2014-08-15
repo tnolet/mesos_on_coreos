@@ -2,7 +2,7 @@
 coreos:
   etcd:
       #generate a new token for each unique cluster from https://discovery.etcd.io/new
-      discovery: https://discovery.etcd.io/d6beb97d6fb61453f1c6f06caa20c39e
+      discovery: https://discovery.etcd.io/ac4061fbdcd8a553b64f8a242ba12ec0
       addr: $public_ipv4:4001
       peer-addr: $public_ipv4:7001
   update:
@@ -31,7 +31,7 @@ coreos:
         [Service]
         TimeoutStartSec=500
         EnvironmentFile=/etc/environment
-        ExecStartPre=/bin/sh -c "/usr/bin/docker history tnolet/ubuntu_mesos:1.0 >/dev/null || /usr/bin/docker pull tnolet/ubuntu_mesos"
-        ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name mesos --net=host -p 5050:5050 -p 5051:5051 -p 2181:2181 -e PUBLIC_IP=$public_ipv4 -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes -v /var/run/docker.sock:/var/run/docker.sock tnolet/ubuntu_mesos:2.0
+        ExecStartPre=/bin/sh -c "/usr/bin/docker history tnolet/ubuntu_mesos:1.0 >/dev/null || /usr/bin/docker pull tnolet/ubuntu_mesos:1.0"
+        ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name mesos --net=host -p 5050:5050 -p 5051:5051 -p 2181:2181 -e PUBLIC_IP=$public_ipv4 -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes -v /var/run/docker.sock:/var/run/docker.sock tnolet/ubuntu_mesos:1.0
         ExecStop=/usr/bin/docker rm -f mesos
 

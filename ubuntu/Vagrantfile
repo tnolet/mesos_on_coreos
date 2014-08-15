@@ -5,10 +5,10 @@ require 'fileutils'
 CLOUD_CONFIG_PATH = "./user-data.yml"
 CONFIG= "config.rb"
 DOCKER_UBUNTU_BASE="ubuntu_latest.tar"
-DOCKER_UBUNTU_MESOS="ubuntu_mesos_2.tar"
+DOCKER_UBUNTU_MESOS="ubuntu_mesos.tar"
 
 # Defaults for config options defined in CONFIG
-$num_instances = 2
+$num_instances = 3
 $enable_serial_logging = false
 $vb_gui = false
 $vb_memory = 1024
@@ -65,9 +65,7 @@ Vagrant.configure("2") do |config|
       end
 
       ip = "172.17.8.#{i+100}"
-      http_port=80+i
       config.vm.network :private_network, ip: ip
-      config.vm.network "forwarded_port", guest: 80, host: http_port
 
       # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
       config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
