@@ -3,10 +3,10 @@
 ########################################################################################################################
 ##
 ##
-##  Mesos_bootstrap.sh relies on the following environment variables. The PUBLIC_IP and DOCKER0_IP are required and have
+##  Mesos_bootstrap.sh relies on the following environment variables. The MAIN_IP and DOCKER0_IP are required and have
 ##  no default. You should pass them into the Docker container using the -e flag.
 ##
-##  $PUBLIC_IP              - the external IP of the host running Docker (required)
+##  $MAIN_IP                - the IP of the host running Docker to which Mesos master and slave can bind (required)
 ##  $DOCKER0_IP             - the IP assigned to the docker0 interface onthe CoreOS host
 ##  $ETCD_PORT              - the port on which ETCD runs on CoreOS (default: 4001)
 ##  $ETCD_MESOS_PATH        - the path in ETCD where we store Mesos related data (default: /mesos)
@@ -52,10 +52,11 @@ blue="\e[0;34m"
 purple="\e[0;35 m"
 normal="\e[0m"
 
-export PUBLIC_IP=${PUBLIC_IP}
+export MAIN_IP=${MAIN_IP}
 export MESOS_BOOTSTRAP_VERSION=1.0
 
-echo -e  "${bold}==> Starting Mesos/CoreOS Bootstrap on $PUBLIC_IP (version $MESOS_BOOTSTRAP_VERSION)${normal}"
+
+echo -e  "${bold}==> Starting Mesos/CoreOS Bootstrap on $MAIN_IP (version $MESOS_BOOTSTRAP_VERSION)${normal}"
 
 
 # configure docker
@@ -106,7 +107,7 @@ function start_slave {
     echo /var/lib/mesos > /etc/mesos-slave/work_dir
     echo external > /etc/mesos-slave/isolation
     echo /usr/local/bin/deimos > /etc/mesos-slave/containerizer_path
-    echo ${PUBLIC_IP}  > /etc/mesos-slave/ip
+    echo ${MAIN_IP}  > /etc/mesos-slave/ip
 
     echo -e  "${bold}==> info: Mesos slave will try to register with a master at ${MASTER}"
     echo -e  "${normal}==> info: Starting slave..."
@@ -136,7 +137,7 @@ function start_master {
     # using ETCD or not?
     USING_ETCD=`echo $1 | cut -d '=' -f2`
 
-    echo $PUBLIC_IP > /etc/mesos-master/ip
+    echo $MAIN_IP > /etc/mesos-master/ip
     echo in_memory > /etc/mesos/registry
     echo "zk://localhost:2181/mesos" > /etc/mesos/zk
 
@@ -267,12 +268,12 @@ if [[ ! -z ${MASTER_IP} ]]; then
 
     # start Marathon
     echo -e  "${bold}==> info: Starting Marathon in a separate container..."
-    docker run --rm --name marathon -p 8080:8080 tnolet/ubuntu_mesos:1.0 marathon --master=zk://${PUBLIC_IP}:2181/mesos &
+    docker run --rm --name marathon -p 8080:8080 tnolet/mesos-on-coreos:1.0 marathon --master=zk://${MAIN_IP}:2181/mesos &
 
 
     # While the master is running, keep publishing its IP to ETCD
     while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$MASTER_PORT\" && \$1 ~ tcp") ]] ; do
-	    curl -L http://${ETCD}/v2/keys${ETCD_PATH}/master -XPUT -d value=${PUBLIC_IP} -d ttl=${ETCD_TTL} >/dev/null 2>&1
+	    curl -L http://${ETCD}/v2/keys${ETCD_PATH}/master -XPUT -d value=${MAIN_IP} -d ttl=${ETCD_TTL} >/dev/null 2>&1
 		sleep $(($ETCD_TTL/2)) # sleep for half the TTL
     done
 
