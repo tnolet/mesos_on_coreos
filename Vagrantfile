@@ -4,8 +4,6 @@ require 'fileutils'
 
 CLOUD_CONFIG_PATH = "./user-data.yml"
 CONFIG= "config.rb"
-DOCKER_UBUNTU_BASE="ubuntu_latest.tar"
-DOCKER_UBUNTU_MESOS="ubuntu_mesos.tar"
 
 # Defaults for config options defined in CONFIG
 $num_instances = 3
@@ -70,9 +68,6 @@ Vagrant.configure("2") do |config|
       # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
       config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
       config.vm.provision :shell, :inline => "export TMPDISK=/", :privileged => false
-      if File.exist?(DOCKER_UBUNTU_BASE)
-        config.vm.provision :shell, :inline => "docker load -i /home/core/share/#{DOCKER_UBUNTU_MESOS}", :privileged => false
-      end
 
       if File.exist?(CLOUD_CONFIG_PATH)
         config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"

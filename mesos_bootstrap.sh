@@ -3,13 +3,12 @@
 ########################################################################################################################
 ##
 ##
-##  Mesos_bootstrap.sh relies on the following environment variables. The PUBLIC_IP is required and has no default.
-##  You should pass it into the Docker container using the -e flag.
+##  Mesos_bootstrap.sh relies on the following environment variables. The PUBLIC_IP and DOCKER0_IP are required and have
+##  no default. You should pass them into the Docker container using the -e flag.
 ##
 ##  $PUBLIC_IP              - the external IP of the host running Docker (required)
-##  $DOCKER0_IP             - the IP of the Docker bridge (default: 10.1.42.1)
+##  $DOCKER0_IP             - the IP assigned to the docker0 interface onthe CoreOS host
 ##  $ETCD_PORT              - the port on which ETCD runs on CoreOS (default: 4001)
-##  $ETCD_IP                - the IP on which ETCD is addressable from the Docker container (default: 10.1.42.1)
 ##  $ETCD_MESOS_PATH        - the path in ETCD where we store Mesos related data (default: /mesos)
 ##  $ETCD_TTL               - the TTL used in retrying ETCD calls
 ##
@@ -60,14 +59,13 @@ echo -e  "${bold}==> Starting Mesos/CoreOS Bootstrap on $PUBLIC_IP (version $MES
 
 
 # configure docker
-export DOCKER0_IP=${DOCKER0_IP:-10.1.42.1}
+export DOCKER0_IP=${DOCKER0_IP}
 export DOCKER_PORT=${DOCKER_PORT:-2375}
 export DOCKER="$DOCKER0_IP:$DOCKER_PORT"
 
 # configure etcd
-export ETCD_IP=${ETCD_IP:-10.1.42.1}
 export ETCD_PORT=${ETCD_PORT:-4001}
-export ETCD="$ETCD_IP:$ETCD_PORT"
+export ETCD="$DOCKER0_IP:$ETCD_PORT"
 export ETCD_PATH=${ETCD_PATH:-/mesos}
 export ETCD_TTL=${ETCD_TTL:-10}
 
@@ -240,7 +238,7 @@ sleep $(($ETCD_TTL/2))
 echo -e  "${normal}==> info: Connected to ETCD at $ETCD"
 
 # Try to determine if there already is a master. This should return a valid public IP number.
-export MASTER_IP=`curl -Ls 10.1.42.1:4001/v2/keys/mesos/master | \
+export MASTER_IP=`curl -Ls ${ETCD}/v2/keys/mesos/master | \
                     sed -n 's/^.*"value":"\([0-9]\)/1/p' | \
                     sed -n 's/[{}]//g;p' | \
                     cut -d '"' -f1`

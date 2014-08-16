@@ -34,3 +34,5 @@ com_crashlytics_export_strings.xml
 .vagrant/
 
 *.tar
+
+local_Vagrantfile
