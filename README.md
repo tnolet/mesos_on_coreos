@@ -1,5 +1,4 @@
 # Mesos-on-coreos
----
 
 An Ubuntu container for Apache Mesos and Marathon on CoreOS. You can use Deimos in conjunction with Marathon and Mesos
 to run Docker containers on the CoreOS host that is hosting this container.
@@ -12,11 +11,11 @@ This container has a basic install of Zookeeper, Mesos, Marathon and Deimos. It 
 script to configure all the components. For this, it needs some environment variables to be passed in using the `-e` flag.
 The `MAIN_IP` and `DOCKER0_IP` are required and have no default. 
 
-    $MAIN_IP                - the IP of the host running Docker to which Mesos master and slave can bind (required)
-    $DOCKER0_IP             - the IP assigned to the docker0 interface onthe CoreOS host
-    $ETCD_PORT              - the port on which ETCD runs on CoreOS (default: 4001)
-    $ETCD_MESOS_PATH        - the path in ETCD where we store Mesos related data (default: /mesos)
-    $ETCD_TTL               - the TTL used in retrying ETCD calls in seconds (default: 10)
+    $MAIN_IP         - the IP of the host running Docker to which Mesos master and slave can bind (required)
+    $DOCKER0_IP      - the IP assigned to the docker0 interface onthe CoreOS host
+    $ETCD_PORT       - the port on which ETCD runs on CoreOS (default: 4001)
+    $ETCD_MESOS_PATH - the path in ETCD where we store Mesos related data (default: /mesos)
+    $ETCD_TTL        - the TTL used in retrying ETCD calls in seconds (default: 10)
 
 This container also relies on a working ETCD connection, typically used with CoreOS.
 
@@ -33,16 +32,16 @@ If automagic setup doesn't work, you can also pass in arguments and the `--etcd=
 
 For example, when you want to start up the whole shebang using auto-discovery.
 
-        docker run --rm --name mesos \ 
-                        --net=host \
-                        -p 5050:5050 \
-                        -p 5051:5051 \
-                        -p 2181:2181 \
-                        -e MAIN_IP=172.17.8.101 \
-                        -e DOCKER0_IP=`ifconfig docker0 | grep 'inet ' | awk '{print $2}'` \
-                        -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        tnolet/mesos-on-coreos:1.0
+    docker run --rm --name mesos \ 
+                    --net=host \
+                    -p 5050:5050 \
+                    -p 5051:5051 \
+                    -p 2181:2181 \
+                    -e MAIN_IP=172.17.8.101 \
+                    -e DOCKER0_IP=`ifconfig docker0 | grep 'inet ' | awk '{print $2}'` \
+                    -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    tnolet/mesos-on-coreos:1.0
 
 Notice we are passing in the `PUBLIC_IP` environment variable and dynamically grabbing the docker0 IP. 
 Also, we do not run in bridged mode but use the hosts IP
@@ -56,19 +55,19 @@ After the whole thing is started up, the normal API and dashboards are available
 When  using ETCD for auto-discovery, you need to first start a master passing in the `--etcd=false` flag. This 
 will start a master and a zookeeper instance in the same container
 
-        ...
-        tnolet/mesos-on-coreos:1.0 master --etcd=false
+    ...
+    tnolet/mesos-on-coreos:1.0 master --etcd=false
 
 Then start a Marathon container, passing in the zookeeper address for the master. No need to specify the extra etcd flag. 
 
-       ...
-       tnolet/mesos-on-coreos:1.0 master marathon --master=zk://172.17.8.101/mesos 
+   ...
+   tnolet/mesos-on-coreos:1.0 master marathon --master=zk://172.17.8.101/mesos 
 
 Then start a slave container, passing in the zookeeper address for the master. You can boot up as many slaves as you want
 on as many containers. As longs as they are reachable over the network.
 
-       ...
-       tnolet/mesos-on-coreos:1.0 master slave --master=zk://172.17.8.101/mesos
+   ...
+   tnolet/mesos-on-coreos:1.0 master slave --master=zk://172.17.8.101/mesos
 
 
 ## Systemd and Cloud-config
@@ -91,7 +90,6 @@ set the memory and amount of CPU's if you like.
     # Vagrantfile
     CLOUD_CONFIG_PATH = "./user-data.yml"
     
-    # Defaults for config options defined in CONFIG
     $num_instances = 3
     $vb_memory = 1024
     $vb_cpus = 1
@@ -114,12 +112,13 @@ your Vagrant boxes. It saves a lot of time when you are destroying your Vagrant 
 
 Just mount your disk to Vagrant and import it using this snippet in your Vagrantfile:
 
-        DOCKER_UBUNTU_MESOS="tnolet_mesos-on-coreos.tar"
-        config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
-        config.vm.provision :shell, :inline => "export TMPDISK=/", :privileged => false
-        if File.exist?(DOCKER_UBUNTU_MESOS)
-            config.vm.provision :shell, :inline => "docker load -i /home/core/share/#{DOCKER_UBUNTU_MESOS}", :privileged => false
-        end
+    DOCKER_UBUNTU_MESOS="tnolet_mesos-on-coreos.tar"
+    
+    config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+    config.vm.provision :shell, :inline => "export TMPDISK=/", :privileged => false
+    if File.exist?(DOCKER_UBUNTU_MESOS)
+        config.vm.provision :shell, :inline => "docker load -i /home/core/share/#{DOCKER_UBUNTU_MESOS}", :privileged => false
+    end
 
 This was tested on OSX Mavericks.
 
