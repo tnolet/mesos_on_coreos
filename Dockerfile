@@ -6,8 +6,8 @@ MAINTAINER tim@magnetic.io
 # Installation details mostly copied from  https://mesosphere.io/learn/run-docker-on-mesosphere/
 # Some tweaks are needed when starting this container to get Mesos running in Docker.
 # 1. The CoreOS host needs to mount the Docker socket to the container
-# 2. The Docker containers for Mesos master and slave need to use the --net=host option to bind directly to the
-     host's network stack.
+# 2. The Docker containers for Mesos master and slave need to use the --net=host option to bind directly to the host's
+#    network stack.
 # 3. Deimos can instruct Docker to download images, for this it needs access to the disk cache. So, we
 #    need to mount the /var/lib/docker/... on CoreOS to our Ubuntu container, e.g.
 #    docker run -v /var/lib/docker/btrfs/subvolumes:/var/lib/docker/btrfs/subvolumes
