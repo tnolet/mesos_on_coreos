@@ -11,20 +11,20 @@ This container has a basic install of Zookeeper, Mesos, Marathon and Deimos. It 
 script to configure all the components. For this, it needs some environment variables to be passed in using the `-e` flag.
 The `MAIN_IP` and `DOCKER0_IP` are required and have no default. 
 
-    $MAIN_IP         - the IP of the host running Docker to which Mesos master and slave can bind (required)
-    $DOCKER0_IP      - the IP assigned to the docker0 interface onthe CoreOS host
+    $MAIN_IP         - the IP of the CoreOS host running Docker to which Mesos master and slave can bind (required)
+    $DOCKER0_IP      - the IP assigned to the docker0 interface on the CoreOS host (required)
     $ETCD_PORT       - the port on which ETCD runs on CoreOS (default: 4001)
     $ETCD_MESOS_PATH - the path in ETCD where we store Mesos related data (default: /mesos)
     $ETCD_TTL        - the TTL used in retrying ETCD calls in seconds (default: 10)
 
-This container also relies on a working ETCD connection, typically used with CoreOS.
+This container relies on a working ETCD connection, typically used with CoreOS.
 
 
 When no arguments are passed into this script, it will try to dynamically configure a Mesos cluster consisting of:  
 - 1 node running a Master, Zookeeper, Marathon and a local slave. Marathon runs in a separate docker container.    
 - x slave nodes, depending on the amount of nodes you spin up. The slaves only run the Mesos slave process and Deimos.  
 
-Discovery of the Master's IP and reporting it to slaves is done using ETCD. For this to work, all nodes should be in 
+Discovery of the Master's IP is done using ETCD. For this to work, all nodes should be in 
 the same ETCD cluster. 
 If automagic setup doesn't work, you can also pass in arguments and the `--etcd=false` flag to set up Mesos manually.
 
