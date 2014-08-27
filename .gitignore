@@ -35,6 +35,7 @@ com_crashlytics_export_strings.xml
 
 *.tar
 
-local_Vagrantfile
+local/Vagrantfile
+local/user-data.yml
 blog.md
 blog.html
