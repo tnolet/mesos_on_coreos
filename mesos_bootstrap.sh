@@ -29,11 +29,11 @@
 ##
 ##  When starting a slave you need to pass in the Master's Zookeeper address
 ##
-##  $ ./mesos_bootstrap.sh slave --master=zk://172.17.8.101/mesos
+##  $ ./mesos_bootstrap.sh slave --master=zk://172.17.8.101:2181/mesos
 ##
 ##  Starting a Marathon instance is the same as a slave
 ##
-##  $ ./mesos_bootstrap.sh marathon --master=zk://172.17.8.101/mesos --etcd=false
+##  $ ./mesos_bootstrap.sh marathon --master=zk://172.17.8.101:2181/mesos --etcd=false
 ##
 ##  This script is partly based on the great work by deis:
 ##  https://github.com/deis/
@@ -108,6 +108,7 @@ function start_slave {
     echo external > /etc/mesos-slave/isolation
     echo /usr/local/bin/deimos > /etc/mesos-slave/containerizer_path
     echo ${MAIN_IP}  > /etc/mesos-slave/ip
+    echo host:${MAIN_IP}  >/etc/mesos-slave/attributes
 
     echo -e  "${bold}==> info: Mesos slave will try to register with a master at ${MASTER}"
     echo -e  "${normal}==> info: Starting slave..."
@@ -171,6 +172,12 @@ function start_marathon {
 
     echo $MASTER_MARATHON > /etc/mesos/master
     echo $MASTER_MARATHON > /etc/mesos/zk
+
+    if [ ! -d /etc/marathon/conf ]; then
+        mkdir -p /etc/marathon/conf
+    fi
+
+    echo "http_callback" > /etc/marathon/conf/event_subscriber
     service marathon start > /dev/null 2>&1 &
 
     # while marathon runs, keep the Docker container running

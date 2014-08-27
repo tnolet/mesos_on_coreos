@@ -61,13 +61,13 @@ will start a master and a zookeeper instance in the same container
 Then start a Marathon container, passing in the zookeeper address for the master. No need to specify the extra etcd flag. 
 
     ...
-    tnolet/mesos-on-coreos:1.0 master marathon --master=zk://172.17.8.101/mesos 
+    tnolet/mesos-on-coreos:1.0 master marathon --master=zk://172.17.8.101:2181/mesos 
 
 Then start a slave container, passing in the zookeeper address for the master. You can boot up as many slaves as you want
 on as many containers. As longs as they are reachable over the network.
 
     ...
-    tnolet/mesos-on-coreos:1.0 master slave --master=zk://172.17.8.101/mesos
+    tnolet/mesos-on-coreos:1.0 master slave --master=zk://172.17.8.101:2181/mesos
 
 
 ## Systemd and Cloud-config
